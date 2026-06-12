@@ -1,7 +1,7 @@
 {
   "name": "prompt-later",
-  "version": "0.2.0",
-  "description": "Delay Codex prompts with /wait and /steer using a UserPromptSubmit hook.",
+  "version": "0.3.0",
+  "description": "Schedule Codex prompts for later with a timeout-independent worker.",
   "license": "MIT",
   "author": "Brahim Hamichan",
   "homepage": "https://prompt-later.pages.dev",
@@ -15,6 +15,7 @@
   "files": [
     "bin/prompt-later.js",
     "hooks/prompt-later-hook.py",
+    "hooks/prompt-later-worker.py",
     "skills/wait/SKILL.md",
     "skills/steer/SKILL.md",
     "assets/prompt-later-icon.svg",

@@ -3,9 +3,12 @@ set -euo pipefail
 
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 HOOK_TARGET="$CODEX_HOME/hooks/prompt-later-hook.py"
+WORKER_TARGET="$CODEX_HOME/hooks/prompt-later-worker.py"
 HOOKS_JSON="$CODEX_HOME/hooks.json"
 
 rm -f "$HOOK_TARGET"
+rm -f "$WORKER_TARGET"
+rm -rf "$CODEX_HOME/prompt-later"
 rm -rf "$CODEX_HOME/skills/wait" "$CODEX_HOME/skills/steer"
 
 python3 - "$HOOKS_JSON" "$HOOK_TARGET" <<'PY'

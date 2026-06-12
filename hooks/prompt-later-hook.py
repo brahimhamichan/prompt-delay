@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 import json
+import os
 import re
 import subprocess
 import sys
 
-SLEEP_BIN = "/bin/sleep"
+PYTHON_BIN = os.path.realpath(sys.executable or "/usr/bin/python3")
 RAW_PROMPT_PREFIX_RE = re.compile(r"^/(\w+)\b\s*(.*)$")
 SKILL_LINK_PREFIX_RE = re.compile(r"^\[\$(\w+)\]\([^)]+\)\s*(.*)$")
 SKILL_MENTION_PREFIX_RE = re.compile(r"^\$(\w+)\b\s*(.*)$")
@@ -111,12 +112,58 @@ def parse_prompt(prompt):
     return {
         "mode": mode,
         "seconds": seconds,
+        "duration_token": duration["duration_token"],
         "payload": " ".join(remaining).strip(),
     }
 
 
 def block(reason):
     print(json.dumps({"decision": "block", "reason": reason}))
+
+
+def _human_wait_message(seconds, duration_token):
+    if duration_token:
+        return f"Queued for {duration_token}."
+    if seconds >= 3600 and seconds % 3600 == 0:
+        return f"Queued for {int(seconds // 3600)} hour(s)."
+    if seconds >= 60 and seconds % 60 == 0:
+        return f"Queued for {int(seconds // 60)} minute(s)."
+    return f"Queued for {int(seconds)} second(s)."
+
+
+def _enqueue_job(parsed, hook_input):
+    script = os.path.join(os.path.dirname(__file__), "prompt-later-worker.py")
+    command = [
+        PYTHON_BIN,
+        script,
+        "enqueue",
+        "--payload",
+        parsed["payload"],
+        "--mode",
+        parsed["mode"],
+        "--seconds",
+        str(parsed["seconds"]),
+        "--duration-token",
+        parsed["duration_token"],
+        "--session-id",
+        str(hook_input.get("session_id", "")),
+        "--turn-id",
+        str(hook_input.get("turn_id", "")),
+        "--cwd",
+        str(hook_input.get("cwd", os.getcwd())),
+    ]
+    subprocess.run(command, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _start_worker():
+    script = os.path.join(os.path.dirname(__file__), "prompt-later-worker.py")
+    subprocess.Popen(
+        [PYTHON_BIN, script, "run"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+        start_new_session=True,
+    )
 
 
 def main():
@@ -139,22 +186,9 @@ def main():
         block(parsed["error"])
         return 0
 
-    try:
-        subprocess.run([SLEEP_BIN, str(parsed["seconds"])], check=True)
-    except Exception as error:
-        block(f"Prompt Later failed to run /bin/sleep: {error}")
-        return 0
-
-    payload = parsed["payload"]
-    if parsed["mode"] == "steer":
-        payload = f"Steering instruction: {payload}"
-
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "UserPromptSubmit",
-            "additionalContext": payload,
-        }
-    }))
+    _enqueue_job(parsed, hook_input)
+    _start_worker()
+    block(_human_wait_message(parsed["seconds"], parsed["duration_token"]))
     return 0
 
 

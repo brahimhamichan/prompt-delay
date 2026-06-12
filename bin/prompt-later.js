@@ -8,6 +8,7 @@ const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
 const hooksDir = path.join(codexHome, "hooks");
 const skillsDir = path.join(codexHome, "skills");
 const hookTarget = path.join(hooksDir, "prompt-later-hook.py");
+const workerTarget = path.join(hooksDir, "prompt-later-worker.py");
 const hooksJson = path.join(codexHome, "hooks.json");
 
 function mkdirp(dir) {
@@ -44,6 +45,7 @@ function install() {
   mkdirp(path.join(skillsDir, "steer"));
 
   copyFile(path.join(root, "hooks", "prompt-later-hook.py"), hookTarget, 0o755);
+  copyFile(path.join(root, "hooks", "prompt-later-worker.py"), workerTarget, 0o755);
   copyFile(path.join(root, "skills", "wait", "SKILL.md"), path.join(skillsDir, "wait", "SKILL.md"), 0o644);
   copyFile(path.join(root, "skills", "steer", "SKILL.md"), path.join(skillsDir, "steer", "SKILL.md"), 0o644);
 
@@ -77,6 +79,7 @@ function install() {
 
 function uninstall() {
   fs.rmSync(hookTarget, { force: true });
+  fs.rmSync(workerTarget, { force: true });
   fs.rmSync(path.join(skillsDir, "wait"), { recursive: true, force: true });
   fs.rmSync(path.join(skillsDir, "steer"), { recursive: true, force: true });
 

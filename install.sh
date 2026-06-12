@@ -10,17 +10,21 @@ CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 HOOKS_DIR="$CODEX_HOME/hooks"
 SKILLS_DIR="$CODEX_HOME/skills"
 HOOK_TARGET="$HOOKS_DIR/prompt-later-hook.py"
+WORKER_TARGET="$HOOKS_DIR/prompt-later-worker.py"
 HOOKS_JSON="$CODEX_HOME/hooks.json"
 
 mkdir -p "$HOOKS_DIR" "$SKILLS_DIR/wait" "$SKILLS_DIR/steer"
 
 if [[ -n "$ROOT" && -f "$ROOT/hooks/prompt-later-hook.py" ]]; then
   install -m 755 "$ROOT/hooks/prompt-later-hook.py" "$HOOK_TARGET"
+  install -m 755 "$ROOT/hooks/prompt-later-worker.py" "$WORKER_TARGET"
   install -m 644 "$ROOT/skills/wait/SKILL.md" "$SKILLS_DIR/wait/SKILL.md"
   install -m 644 "$ROOT/skills/steer/SKILL.md" "$SKILLS_DIR/steer/SKILL.md"
 else
   curl -fsSL "$REPO_RAW_URL/hooks/prompt-later-hook.py" -o "$HOOK_TARGET"
   chmod 755 "$HOOK_TARGET"
+  curl -fsSL "$REPO_RAW_URL/hooks/prompt-later-worker.py" -o "$WORKER_TARGET"
+  chmod 755 "$WORKER_TARGET"
   curl -fsSL "$REPO_RAW_URL/skills/wait/SKILL.md" -o "$SKILLS_DIR/wait/SKILL.md"
   chmod 644 "$SKILLS_DIR/wait/SKILL.md"
   curl -fsSL "$REPO_RAW_URL/skills/steer/SKILL.md" -o "$SKILLS_DIR/steer/SKILL.md"
