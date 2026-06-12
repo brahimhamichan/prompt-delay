@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prompt Later</title>
+    <meta name="description" content="A Codex hook for delaying prompts before they reach the model." />
+    <meta property="og:title" content="Prompt Later" />
+    <meta property="og:description" content="Use /wait and /steer in Codex. Install with npx prompt-later." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/assets/prompt-later-icon.svg" />
+    <link rel="icon" href="/assets/prompt-later-icon.svg" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;650;750&display=swap");
+
+      :root {
+        --bg: #faf9f5;
+        --ink: #151412;
+        --muted: #6c675f;
+        --faint: #e6e0d4;
+        --panel: rgba(255, 255, 255, 0.66);
+        --orange: #ed7a35;
+        --blue: #2f7de1;
+        --green: #1f9f66;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(250, 249, 245, 0.94)),
+          radial-gradient(circle at 50% -12%, rgba(237, 122, 53, 0.1), transparent 32%),
+          var(--bg);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: Manrope, sans-serif;
+        letter-spacing: 0;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      main {
+        width: min(760px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 22px 0 46px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        color: var(--muted);
+        font: 13px/1 "IBM Plex Mono", monospace;
+      }
+
+      .network {
+        display: inline-flex;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .mark {
+        width: 23px;
+        height: 23px;
+        border-radius: 7px;
+        box-shadow: 0 0 0 1px rgba(21, 20, 18, 0.09);
+      }
+
+      .navlinks {
+        display: inline-flex;
+        gap: 16px;
+      }
+
+      .hero {
+        min-height: 548px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 80px 0 52px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 26px;
+        color: var(--muted);
+        font: 14px "IBM Plex Mono", monospace;
+      }
+
+      .orb {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--orange);
+        animation: breathe 1.8s ease-in-out infinite;
+      }
+
+      @keyframes breathe {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(237, 122, 53, 0.28);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(237, 122, 53, 0);
+        }
+      }
+
+      h1 {
+        margin: 0;
+        font: 400 clamp(72px, 14vw, 140px) / 0.86 "Instrument Serif", serif;
+        letter-spacing: 0;
+      }
+
+      .sub {
+        max-width: 520px;
+        margin: 26px auto 0;
+        color: var(--muted);
+        font-size: clamp(18px, 2.35vw, 23px);
+        line-height: 1.42;
+      }
+
+      .tabs {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 34px;
+        padding: 5px;
+        border: 1px solid var(--faint);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.54);
+      }
+
+      .tab {
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        padding: 8px 12px;
+        font: 500 13px Manrope, sans-serif;
+        cursor: pointer;
+      }
+
+      .tab[aria-selected="true"] {
+        background: var(--ink);
+        color: white;
+      }
+
+      .command {
+        width: min(610px, 100%);
+        margin: 14px auto 0;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 15px;
+        border: 1px solid var(--faint);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 24px 70px rgba(33, 29, 22, 0.09);
+        text-align: left;
+      }
+
+      .dollar,
+      code {
+        font: 15px "IBM Plex Mono", monospace;
+      }
+
+      code {
+        overflow-wrap: anywhere;
+      }
+
+      .copy {
+        border: 1px solid rgba(21, 20, 18, 0.13);
+        border-radius: 6px;
+        background: white;
+        padding: 9px 11px;
+        color: var(--ink);
+        font: 650 12px Manrope, sans-serif;
+        cursor: pointer;
+      }
+
+      .copy:hover {
+        border-color: var(--ink);
+      }
+
+      .below {
+        display: grid;
+        gap: 30px;
+      }
+
+      .section {
+        border-top: 1px solid var(--faint);
+        padding-top: 26px;
+      }
+
+      .section-title {
+        margin: 0 0 16px;
+        font-size: 15px;
+        font-weight: 750;
+      }
+
+      .steps {
+        display: grid;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.58;
+      }
+
+      .steps p {
+        margin: 0;
+      }
+
+      .bullet {
+        color: var(--orange);
+        margin-right: 7px;
+      }
+
+      .links-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 38px;
+        border: 1px solid var(--faint);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.58);
+        padding: 0 13px;
+        color: var(--ink);
+        font-size: 14px;
+      }
+
+      .pill svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .faq {
+        display: grid;
+        gap: 16px;
+      }
+
+      details {
+        border-top: 1px solid var(--faint);
+        padding-top: 16px;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 650;
+      }
+
+      details p {
+        margin: 9px 0 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 38px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 620px) {
+        .topbar,
+        footer {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .hero {
+          min-height: 520px;
+          padding-top: 64px;
+        }
+
+        .command {
+          grid-template-columns: auto 1fr;
+        }
+
+        .copy {
+          grid-column: 1 / -1;
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="topbar">
+        <a class="network" href="/">
+          <img class="mark" src="/assets/prompt-later-icon.svg" alt="" />
+          <span>localhost</span>
+          <span>Prompt Queue</span>
+        </a>
+        <nav class="navlinks" aria-label="Project links">
+          <a href="https://www.npmjs.com/package/prompt-later">npm</a>
+          <a href="https://github.com/brahimhamichan/prompt-later">github</a>
+        </nav>
+      </header>
+
+      <section class="hero" aria-labelledby="title">
+        <div>
+          <div class="status"><span class="orb"></span> c o a l e s c i n g...</div>
+          <h1 id="title">Prompt Later</h1>
+          <p class="sub">A Codex hook for sending prompts later.</p>
+
+          <div class="tabs" role="tablist" aria-label="Install command">
+            <button class="tab" type="button" role="tab" aria-selected="true" data-command="npx prompt-later">cli</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-command="/wait 10s hello">agent prompt</button>
+          </div>
+
+          <div class="command">
+            <span class="dollar">$</span>
+            <code id="command-text">npx prompt-later</code>
+            <button class="copy" type="button">copy</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="below">
+        <section class="section" aria-labelledby="getting-started">
+          <h2 class="section-title" id="getting-started">Getting started</h2>
+          <div class="steps">
+            <p><span class="bullet">•</span>Run <code>npx prompt-later</code>, restart Codex, and approve the hook when prompted.</p>
+            <p><span class="bullet">•</span>Use <code>/wait 10s hello</code>, <code>/wait 1.5h queue run tests</code>, or <code>/steer 30 seconds stay concise</code>.</p>
+            <p><span class="bullet">•</span>The hook runs <code>/bin/sleep</code> before Codex calls the model, then forwards only the delayed text as hook context.</p>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="links">
+          <h2 class="section-title" id="links">Links</h2>
+          <div class="links-row">
+            <a class="pill" href="https://github.com/brahimhamichan/prompt-later" aria-label="Prompt Later on GitHub">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.14c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.18 1.18A11.1 11.1 0 0 1 12 6.07c.98 0 1.96.13 2.88.39 2.2-1.49 3.17-1.18 3.17-1.18.64 1.58.24 2.75.12 3.04.74.8 1.18 1.83 1.18 3.08 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.07.78 2.16v3.12c0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+              </svg>
+              <span>GitHub</span>
+              <span id="stars">0 stars</span>
+            </a>
+            <a class="pill" href="https://www.npmjs.com/package/prompt-later">npx prompt-later</a>
+            <a class="pill" href="https://github.com/brahimhamichan/prompt-later/issues">issues</a>
+          </div>
+        </section>
+
+        <section class="section faq" aria-labelledby="faq">
+          <h2 class="section-title" id="faq">FAQ</h2>
+          <details open>
+            <summary>Does the agent run the wait?</summary>
+            <p>No. The hook runs first, before the prompt is sent to the model.</p>
+          </details>
+          <details>
+            <summary>Does it rewrite the visible prompt?</summary>
+            <p>No. Codex hooks can add context or block. Prompt Later uses context after the wait completes.</p>
+          </details>
+          <details>
+            <summary>Why keep tiny skill files?</summary>
+            <p>They make autocomplete work. Their body is empty and the description tells the model the hook already ran.</p>
+          </details>
+        </section>
+      </div>
+
+      <footer>
+        <span>MIT. Built for Codex.</span>
+        <a href="https://github.com/brahimhamichan/prompt-later">→ Start contributing on GitHub</a>
+      </footer>
+    </main>
+
+    <script>
+      const tabs = document.querySelectorAll(".tab");
+      const commandText = document.querySelector("#command-text");
+      const copyButton = document.querySelector(".copy");
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          tabs.forEach((item) => item.setAttribute("aria-selected", "false"));
+          tab.setAttribute("aria-selected", "true");
+          commandText.textContent = tab.dataset.command;
+        });
+      });
+
+      copyButton.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(commandText.textContent.trim());
+        copyButton.textContent = "copied";
+        setTimeout(() => {
+          copyButton.textContent = "copy";
+        }, 1000);
+      });
+
+      fetch("https://api.github.com/repos/brahimhamichan/prompt-later")
+        .then((response) => response.ok ? response.json() : null)
+        .then((repo) => {
+          if (!repo) return;
+          const count = repo.stargazers_count || 0;
+          document.querySelector("#stars").textContent = `${count.toLocaleString()} ${count === 1 ? "star" : "stars"}`;
+        })
+        .catch(() => {});
+    </script>
+  </body>
+</html>
